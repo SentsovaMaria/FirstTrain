@@ -24,31 +24,28 @@ public class Main {
             Product product = new Product("code"+i,"name"+i);
             map.put(key,product);
         }
-        try {
-
+       /* try {
             // Получаем класс объекта
             Class<?> mapClass = map.getClass();
             // Получаем приватное поле по имени
             Field field = mapClass.getDeclaredField("table");
             // Делаем поле доступным, чтобы можно было читать его значение
-            field.setAccessible(true);
+            //не разрешает. еще нужна какая-то настройка
+             field.setAccessible(true);
             // Получаем значение поля
             //Пропускаем те значения, которые null
             //и смотрим тип узла
             String value = (String) field.get(mapClass);
-
-
             // Выводим значение
             System.out.println("индекс такой-то" + value+ "тип бакета");
-        } catch (NoSuchFieldException | IllegalAccessException e) {
+        } catch (Exception e) {
             e.printStackTrace();
-        }
+        }*/
 
         //заберем несколько элементов из мапы
         for (int i=0;i<=5;i++){
              Product p = map.remove(new  Key ("key"+i));
             //System.out.println(map.size());
-
         }
 
         //когда удаляем элементы из мапы. то мы не смотрим по сути на константу.
@@ -56,10 +53,8 @@ public class Main {
         //у меня было 3
         for (int i=6;i<=10;i++){
             Product p = map.remove(new  Key ("key"+i));
-
         }
 
         System.out.println(map.size());
-
     }
 }

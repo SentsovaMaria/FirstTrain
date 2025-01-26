@@ -5,6 +5,8 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class MyArrayList<E> implements List<E> {
     //коэффициент, на который умножается размер массива при расширении
@@ -16,7 +18,7 @@ public class MyArrayList<E> implements List<E> {
     //элементы массива
     private Object[] elements;
 
-    //конструкторы_______________________________________________________________
+    //конструкторы----------------------------------------------------------------------
     public MyArrayList(int size) {
         if (size < 0) throw new IllegalArgumentException("Illegal Capacity: " + size);
         this.size = size;
@@ -45,9 +47,11 @@ public class MyArrayList<E> implements List<E> {
         Object[] newArray = new Object[newArraySize];
 
         //в новый массив копируем часть массива до места вставки
+        //можно использовать System.arraycopy.
         for (int i = 0; i < index; i++) {
             newArray[i] = elements[i];
         }
+
         //вставляем элемент в позицию index
         newArray[index] = element;
 
@@ -55,6 +59,7 @@ public class MyArrayList<E> implements List<E> {
         for (int i = index + 1; i < currentLength + 1; i++) {
             newArray[i] = elements[i - 1];
         }
+
         // изменили ссылки
         elements = newArray;
         //изменили значения полей
@@ -63,7 +68,7 @@ public class MyArrayList<E> implements List<E> {
     }
 
     /**
-     * Проверка валидности индекса (корректный индекс от нуля до currentLength)
+     * Проверка невалидности индекса (корректный индекс от нуля до currentLength)
      *
      * @param index - проверяемый индекс
      * @return true, если индекс не валидный
@@ -106,10 +111,12 @@ public class MyArrayList<E> implements List<E> {
         for (int i = 0; i < index; i++) {
             newArray[i] = elements[i];
         }
+
         //копируем коллекцию, начиная с позиции index
         Iterator iterator = c.iterator();
         for (int i = index; i < index + sizeCollection; i++)
             newArray[i] = iterator.next();
+
         //копируем оставшиеся элементы исходного массива
         for (int i = index + 1; i <= currentLength; i++) {
             newArray[i + sizeCollection - 1] = elements[i - 1];
@@ -133,10 +140,10 @@ public class MyArrayList<E> implements List<E> {
         return addAll(currentLength, c);
     }
 
-    //поиск элементов______________________________________________________________
+    //поиск элементов----------------------------------------------------------------------
 
     /**
-     * Поиск элемента о в списке
+     * Поиск первого вхождения элемента о в списке
      *
      * @param o element to search for
      * @return индекс элемента или -1, если такого элемента нет
@@ -150,12 +157,21 @@ public class MyArrayList<E> implements List<E> {
         return -1;
     }
 
+    /**
+     * Поиск элемента e в списке
+     * @param e element whose presence in this list is to be tested
+     * @return true, если элемент найден
+     */
     @Override
     public boolean contains(Object e) {
         return indexOf(e) != -1;
     }
 
-
+    /**
+     * Поиск последнего вхождения элемента o в списке
+     * @param o element to search for
+     * @return индекс элемента или -1, если он не найден
+     */
     @Override
     public int lastIndexOf(Object o) {
         for (int i = currentLength; i >= 0; i--) {
@@ -165,6 +181,11 @@ public class MyArrayList<E> implements List<E> {
         return -1;
     }
 
+    /**
+     * Поиск элементов коллекции в списке.
+     * @param c collection to be checked for containment in this list
+     * @return true, если все элементы коллекции содержаться в списке
+     */
     @Override
     public boolean containsAll(Collection<?> c) {
         boolean ok = true;
@@ -175,8 +196,62 @@ public class MyArrayList<E> implements List<E> {
 
         return ok;
     }
+    //удаление элементов----------------------------------------------------------------------
+    /**
+     * Удаление элемента по индексу
+     * Если индекс выходит за границы массива, то выбрасывается исключение
+     *
+     * @param index the index of the element to be removed
+     * @return удаленный элемент
+     */
+    @Override
+    public E remove(int index) {
+        if (isNotValidIndex(index))
+            throw new ArrayIndexOutOfBoundsException("Индекс должен быть в диапазоне от 0 до " + currentLength +
+                    ", а текущее значение индекса равно " + index);
+        E element = (E) elements[index];
+        for (int i = index; i <= currentLength; i++) {
+            elements[i] = elements[i + 1];
+        }
+        elements[currentLength] = null;
+        currentLength--;
+        return element;
+    }
 
-    //размер________________________________________________________________________
+    /**
+     * Удаление элемента. Сначала осуществляется поиск элемента, затем
+     * если элемент найден - он удаляется
+     *
+     * @param o element to be removed from this list, if present
+     * @return true, если получилось удалить элемент
+     */
+    @Override
+    public boolean remove(Object o) {
+        int index = indexOf(o);
+        if (index == -1) return false;
+        int previousLength = currentLength;
+        remove(index);
+        return previousLength > currentLength;
+    }
+
+    /**
+     * Удаление коллекции элементов их списка
+     * @param c collection containing elements to be removed from this list
+     * @return false, если все элементы коллекции присутствовали в списке и все они удалены
+     */
+    @Override
+    public boolean removeAll(Collection<?> c) {
+        boolean ok = true;//все элементы коллекции удалены
+
+        Iterator iterator = c.iterator();
+        while (iterator.hasNext()) {
+            ok = ok && remove(iterator.next());
+        }
+
+        return ok;
+    }
+
+    //работа с полями----------------------------------------------------------------------
     @Override
     public int size() {
         return size;
@@ -199,7 +274,34 @@ public class MyArrayList<E> implements List<E> {
         this.size = size;
     }
 
-    //------------------------------------------------
+    @Override
+    public E get(int index) {
+        if (isNotValidIndex(index)) throw new ArrayIndexOutOfBoundsException("Индекс должен быть в диапазоне от 0 до " + currentLength +
+                ", а текущее значение индекса равно " + index);
+        return (E) elements[index];
+    }
+
+    /**
+     * Сохранение элемента по index
+     * @param index index of the element to replace
+     * @param element element to be stored at the specified position
+     * @return старое значение элемента
+     */
+    @Override
+    public E set(int index, E element) {
+        if (isNotValidIndex(index)) throw new ArrayIndexOutOfBoundsException("Индекс должен быть в диапазоне от 0 до " + currentLength +
+                ", а текущее значение индекса равно " + index);
+        E oldElement = (E)elements[index];
+        elements[index] = element;
+        return  oldElement;
+    }
+
+    @Override
+    public ListIterator<E> listIterator() {
+        return null;
+    }
+
+    //----------------------------------------------------------------------
 
     @Override
     public Iterator<E> iterator() {
@@ -216,57 +318,6 @@ public class MyArrayList<E> implements List<E> {
         return null;
     }
 
-
-    //удаление элементов-------------------------------------------------------------
-
-    /**
-     * Удаление элемента по индексу
-     * Если индеекс выходит за границы массива, то выбрасывается исключение
-     *
-     * @param index the index of the element to be removed
-     * @return удаленный элемент
-     */
-    @Override
-    public E remove(int index) {
-        if (isNotValidIndex(index))
-            throw new ArrayIndexOutOfBoundsException("Индекс должен быть в диапазоне от 0 до " + currentLength +
-                    ", а текущее значение индекса равно " + index);
-        E element = (E) elements[index];
-        for (int i = index; i <= currentLength; i++) {
-            elements[i] = elements[i + 1];
-        }
-        elements[currentLength] = null;
-        currentLength--;
-        return element;
-    }
-
-    /**
-     * Удаление элемента. Сначала осуществляется поиск элемента, затем
-     * если элемент найден, то он удаляется
-     *
-     * @param o element to be removed from this list, if present
-     * @return true, если получилось удалить элемент
-     */
-    @Override
-    public boolean remove(Object o) {
-        int index = indexOf(o);
-        if (index == -1) return false;
-        int previousLength = currentLength;
-        remove(index);
-        return previousLength > currentLength;
-    }
-
-    @Override
-    public boolean removeAll(Collection<?> c) {
-        boolean ok = true;
-        Iterator iterator = c.iterator();
-        while (ok && iterator.hasNext()) {
-            ok = ok && remove(iterator.next());
-        }
-
-        return ok;
-    }
-
     @Override
     public boolean retainAll(Collection<?> c) {
         return false;
@@ -277,22 +328,6 @@ public class MyArrayList<E> implements List<E> {
         for (int i = 0; i < size; i++) {
             elements[i] = null;
         }
-    }
-
-    @Override
-    public E get(int index) {
-        return (E) elements[index];
-    }
-
-    @Override
-    public E set(int index, E element) {
-        return null;
-    }
-
-
-    @Override
-    public ListIterator<E> listIterator() {
-        return null;
     }
 
     @Override
@@ -307,12 +342,15 @@ public class MyArrayList<E> implements List<E> {
 
     public String toString() {
         if (currentLength == 0) return null;
-        StringBuilder result = new StringBuilder(String.valueOf(elements[0]) + ", ");
+        /*StringBuilder result = new StringBuilder(String.valueOf(elements[0]) + ", ");
 
         for (int i = 1; i < currentLength; i++) {
             result = result.append(String.valueOf(elements[i]) + ", ");
         }
-        return result.toString();
+        return result.toString();*/
+        return Stream.of(elements)
+                .map(String::valueOf)
+                .collect(Collectors.joining(","));
 
     }
 }
